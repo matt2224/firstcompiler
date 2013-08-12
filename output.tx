@@ -1,7 +1,8 @@
 .data 
  nl: .asciiz "\n" 
 .text 
- main:li $v0,1 
+ main:b start 
+do:li $v0,1 
 li $t0,5
 move $a0,$t0 
 syscall 
@@ -39,8 +40,8 @@ syscall
 li $v0,4 
 la $a0,nl 
 syscall 
-label0:li $t1,0 
-label2:bge $t1,15,label3
+label0:li $t2,0 
+label2:bge $t2,15,label3
 li $v0,1 
 li $t0,2
 move $a0,$t0 
@@ -48,8 +49,8 @@ syscall
 li $v0,4 
 la $a0,nl 
 syscall 
-li $t2,0 
-label4:bge $t2,2,label5
+li $t3,0 
+label4:bge $t3,2,label5
 li $v0,1 
 li $t0,5
 move $a0,$t0 
@@ -57,9 +58,12 @@ syscall
 li $v0,4 
 la $a0,nl 
 syscall 
-addi $t2,$t2,1 
+addi $t3,$t3,1 
 b label4
-label5:addi $t1,$t1,1 
+label5:addi $t2,$t2,1 
 b label2
-label3:li $v0, 10 
+label3:b exit 
+start:b do
+b exit 
+exit: li $v0, 10 
 syscall

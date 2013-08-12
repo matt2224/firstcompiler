@@ -13,6 +13,9 @@ stmt -> print { emit('li $v0,1 \n li $t0,') } literal { emit('\n  move $a0, $t0 
                       { emit('b ') emit(newlabel-0) emit('\n')}
                       { emit(newlabel-1) emit(':') }
       | id = num
+      | func id { emit(id.value) emit(':')}
+        ( stmt_list ) { emit('b '); emit(endlabel); emit('\n')}
+      | call id { emit('b ') emit(id.value) emit('\n')}
 literal -> num { emit(num.val) }
         | true { emit('1')}
         | false { emit ('0')}

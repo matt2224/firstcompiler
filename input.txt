@@ -1,21 +1,29 @@
-print 5 ;
-print 10 ;
-print 15 ;
+func do (
+    print 5 ;
+    print 10 ;
+    print 15 ;
 
-x = 2 ;
+    x = 2 ;
 
-if false (
-   print x ;
-) else (
-  print 7 ;
+    if false (
+       print x ;
+    ) else (
+      print 7 ;
+    ) ;
+
+    numtimes = 15 ;
+
+    dotimes numtimes (
+       print x ;
+
+       dotimes 2 (
+            print 5 ;
+       ) ;
+    ) ;
 ) ;
 
-numtimes = 15 ;
+func start (
+   print 0 ;
 
-dotimes numtimes (
-   print x ;
-
-   dotimes 2 (
-        print 5 ;
-   ) ;
+   call do ;
 ) ;

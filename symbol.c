@@ -14,6 +14,8 @@ typedef enum {
     DO_TIMES,
     NUM,
     EQUALS,
+    FUNC,
+    CALL,
     END
 } token;
 

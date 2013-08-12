@@ -12,7 +12,7 @@ char token_value_str[20] = "";
 int label_count = 0;
 
 void new_label(char *c) {
-    sprintf(c, "label%d", label_count);
+    sprintf(c, "L%d", label_count);
     label_count++;
 }
 
@@ -170,12 +170,35 @@ void stmt(int depth) {
         match(NUM);
 
         symtable_insert(lexeme, ID, value);
+    } else if (lookahead == FUNC) {
+        match(FUNC);
+
+        char func_label[20] = "";   
+        strcpy(func_label, token_value_str);
+
+        match(ID);
+        emit(func_label); emit(":");
+
+        match(OPEN_BRACKET);
+        stmt_list(depth+1);
+        match(CLOSE_BRACKET);
+
+        emit("b "); emit("exit \n");
+    } else if (lookahead == CALL) {
+        match(CALL);
+
+        char func_label[20] = "";   
+        strcpy(func_label, token_value_str);
+
+        match(ID);
+        emit("b "); emit(func_label); emit("\n");
     }
 }
 
 void stmt_list(int depth) {
     if (lookahead == PRINT || lookahead == IF || 
-        lookahead == DO_TIMES || lookahead == ID) {
+        lookahead == DO_TIMES || lookahead == ID ||
+        lookahead == FUNC || lookahead == CALL) {
         stmt(depth); match(SEMICOLON); stmt_list(depth);
     }
 }
@@ -184,10 +207,11 @@ void stmt_list(int depth) {
 void parse() {
     emit(".data \n nl: .asciiz \"\\n\" \n");
     emit(".text \n main:");
+    emit("b start \n");
 
     stmt_list(0);
 
-    emit("li $v0, 10 \n");
+    emit("exit: li $v0, 10 \n");
     emit("syscall");
 }
 
@@ -206,6 +230,8 @@ int main() {
     symtable_insert("dotimes", DO_TIMES, 0);
     symtable_insert("true", TRUE_T, 0);
     symtable_insert("false", FALSE_T, 0);
+    symtable_insert("func", FUNC, 0);
+    symtable_insert("call", CALL, 0);
 
     lookahead = lex();
 
