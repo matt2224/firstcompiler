@@ -2,12 +2,20 @@ print 5 ;
 print 10 ;
 print 15 ;
 
+x = 2 ;
+
 if false (
-   print 6 ;
+   print x ;
 ) else (
   print 7 ;
 ) ;
 
-dotimes 10 (
-   print 1 ;
+numtimes = 15 ;
+
+dotimes numtimes (
+   print x ;
+
+   dotimes 2 (
+        print 5 ;
+   ) ;
 ) ;

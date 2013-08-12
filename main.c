@@ -7,6 +7,7 @@
 
 token lookahead;
 int token_value;
+char token_value_str[20] = "";
 
 int label_count = 0;
 
@@ -30,6 +31,8 @@ token lex() {
             return OPEN_BRACKET;
         } else if (c == ')') {
             return CLOSE_BRACKET;
+        } else if (c == '=') {
+            return EQUALS;
         } else if (isalpha(c)) {
             str[char_i] = c;
             char_i++;
@@ -43,9 +46,11 @@ token lex() {
 
                 symtable_record_ptr rec = symtable_get(str);
                 if (rec) {
+                    strcpy(token_value_str, rec->lexeme);
                     return rec->token;
                 } else {
-                   error();
+                    strcpy(token_value_str, str);
+                    return ID;
                 }
             } else if (num_i > 0) {
                 token_value = num;
@@ -84,6 +89,12 @@ void literal() {
     } else if (lookahead == FALSE_T) {
         match(FALSE_T);
         emit("0");
+    } else if (lookahead == ID) {
+        symtable_record_ptr rec = symtable_get(token_value_str);
+        match(ID);
+        char s[33];
+        sprintf(s, "%d", rec->value);
+        emit(s);
     } else {
         char s[33];
         sprintf(s, "%d", token_value);
@@ -94,7 +105,7 @@ void literal() {
 
 void stmt_list();
 
-void stmt() {
+void stmt(int depth) {
     if (lookahead == PRINT) {
         match(PRINT);         
         emit("li $v0,1 \n");
@@ -118,36 +129,54 @@ void stmt() {
         match(IF); emit("li $t0,");
         literal(); emit("\n beq $t0,0,"); emit(else_label); emit("\n");
         match(OPEN_BRACKET);
-        stmt_list();
+        stmt_list(depth+1);
         match(CLOSE_BRACKET); emit("b "); emit(after_label); emit("\n");
         match(ELSE); emit(else_label); emit(":");
         match(OPEN_BRACKET);
-        stmt_list();
+        stmt_list(depth+1);
         match(CLOSE_BRACKET); emit(after_label); emit(":");
     } else if (lookahead == DO_TIMES) {
+        // the register used is based on the depth,
+        // so that structures can be nested without conflict.
+        char reg_id[5];
+        sprintf(reg_id, "$t%d", depth+1);
+
+
         char start_label[10];
         new_label(start_label);
         char end_label[10]; 
         new_label(end_label);
 
         match(DO_TIMES);
-        emit("li $t1,0 \n");
+        emit("li "); emit(reg_id); emit(",0 \n");
         emit(start_label); emit(":");
-        emit("bge $t1,");
+        emit("bge "); emit(reg_id); emit(",");
         literal();
         emit(","); emit(end_label); emit("\n");
         match(OPEN_BRACKET);
-        stmt_list();
+        stmt_list(depth+1);
         match(CLOSE_BRACKET);
-        emit("addi $t1,$t1,1 \n");
+        emit("addi "); emit(reg_id); emit(","); emit(reg_id); emit(",1 \n");
         emit("b "); emit(start_label); emit("\n");
         emit(end_label); emit(":");
+    } else if (lookahead == ID) {
+        char lexeme[22] = ""; 
+        strcpy(lexeme, token_value_str);
+
+        match(ID);
+        match(EQUALS);
+
+        int value = token_value;
+        match(NUM);
+
+        symtable_insert(lexeme, ID, value);
     }
 }
 
-void stmt_list() {
-    if (lookahead == PRINT || lookahead == IF || lookahead == DO_TIMES) {
-        stmt(); match(SEMICOLON); stmt_list();
+void stmt_list(int depth) {
+    if (lookahead == PRINT || lookahead == IF || 
+        lookahead == DO_TIMES || lookahead == ID) {
+        stmt(depth); match(SEMICOLON); stmt_list(depth);
     }
 }
 
@@ -156,7 +185,7 @@ void parse() {
     emit(".data \n nl: .asciiz \"\\n\" \n");
     emit(".text \n main:");
 
-    stmt_list();
+    stmt_list(0);
 
     emit("li $v0, 10 \n");
     emit("syscall");
@@ -170,12 +199,13 @@ error() {
 }
 
 int main() {
-    symtable_insert("print", PRINT);
-    symtable_insert("if", IF);
-    symtable_insert("else", ELSE);
-    symtable_insert("dotimes", DO_TIMES);
-    symtable_insert("true", TRUE_T);
-    symtable_insert("false", FALSE_T);
+    // put keywords into symbol table.
+    symtable_insert("print", PRINT, 0);
+    symtable_insert("if", IF, 0);
+    symtable_insert("else", ELSE, 0);
+    symtable_insert("dotimes", DO_TIMES, 0);
+    symtable_insert("true", TRUE_T, 0);
+    symtable_insert("false", FALSE_T, 0);
 
     lookahead = lex();
 

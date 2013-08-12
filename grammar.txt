@@ -12,6 +12,8 @@ stmt -> print { emit('li $v0,1 \n li $t0,') } literal { emit('\n  move $a0, $t0 
         ( stmt_list ) { emit('addi $t1,$t1,1 \n')}
                       { emit('b ') emit(newlabel-0) emit('\n')}
                       { emit(newlabel-1) emit(':') }
+      | id = num
 literal -> num { emit(num.val) }
         | true { emit('1')}
         | false { emit ('0')}
+        | id { emit(id.value) }
