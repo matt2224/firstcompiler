@@ -3,19 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef enum {
-    SEMICOLON,
-    PRINT,
-    IF,
-    ELSE,
-    OPEN_BRACKET,
-    CLOSE_BRACKET,
-    TRUE_T,
-    FALSE_T,
-    DO_TIMES,
-    NUM,
-    END
-} token;
+#include "symbol.c"
 
 token lookahead;
 int token_value;
@@ -53,19 +41,10 @@ token lex() {
                 // string "collection" is complete.
                 str[char_i] = '\0';
 
-                if (strcmp(str, "print") == 0) {
-                    return PRINT;
-                } else if (strcmp(str, "if") == 0) {
-                    return IF;
-                } if (strcmp(str, "else") == 0) {
-                    return ELSE;
-                } if (strcmp(str, "true") == 0) {
-                    return TRUE_T;
-                } if (strcmp(str, "false") == 0) {
-                    return FALSE_T;
-                }  if (strcmp(str, "dotimes") == 0) {
-                    return DO_TIMES;
-                }  else {
+                symtable_record_ptr rec = symtable_get(str);
+                if (rec) {
+                    return rec->token;
+                } else {
                    error();
                 }
             } else if (num_i > 0) {
@@ -191,6 +170,13 @@ error() {
 }
 
 int main() {
+    symtable_insert("print", PRINT);
+    symtable_insert("if", IF);
+    symtable_insert("else", ELSE);
+    symtable_insert("dotimes", DO_TIMES);
+    symtable_insert("true", TRUE_T);
+    symtable_insert("false", FALSE_T);
+
     lookahead = lex();
 
     parse();
