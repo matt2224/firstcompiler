@@ -5,11 +5,29 @@
 
 #include "symbol.c"
 
+#define BUFFER_SIZE 25
+#define EOF_MARKER '`'
+
 token lookahead;
 int token_value;
 char token_value_str[20] = "";
 
+char buffer[BUFFER_SIZE] = "";
+int lexeme_beginning = 0;
+int forward = 0;
+int end_reached = 0;
+
 int label_count = 0;
+
+syntax_error() {
+    printf("Syntax error\n");
+    exit(1);
+}
+
+lex_error() {
+    printf("Lex error\n");
+    exit(1);
+}
 
 void new_label(char *c) {
     sprintf(c, "L%d", label_count);
@@ -17,49 +35,83 @@ void new_label(char *c) {
 }
 
 token lex() {
-    int num = 0;
-    int num_i = 0;
-    char str[20] = "";
-    int char_i = 0;
+    int state = 0;  
+
+    // remove last token from buffer.
+    int n = BUFFER_SIZE - forward;
+    strncpy(buffer, buffer+forward, n);
+    buffer[n] = '\0';     
+    lexeme_beginning = 0;
+    forward = 0;
+
+    int buffer_end = strlen(buffer);
+
+    if (!end_reached) {
+        // fill buffer
+        while (buffer_end < BUFFER_SIZE - 1) {
+            char c = getchar();
+            if (!feof(stdin)) {
+                buffer[buffer_end++] = c;
+            } else {
+                end_reached = 1;
+                // EOF marker.
+                buffer[buffer_end++] = EOF_MARKER;
+                break;
+            }
+        }      
+        buffer[buffer_end] = '\0';    
+    }
 
     while (1) {
-        char c = getchar();
+        char c = buffer[forward++];
+        switch(state) {
+            case 0: if (c == ' ' || c == '\t' || c == '\n') {
+                state = 0;
+                lexeme_beginning++;
+            } else {
+                switch(c) {
+                    case ';': return SEMICOLON;
+                    case ')': return CLOSE_BRACKET;
+                    case '(': return OPEN_BRACKET; 
+                    case '=': return EQUALS;
+                    case EOF_MARKER: return EOF;
+                    default: if (isalpha(c)) { state = 1; }
+                             else if (isdigit(c)) { state = 2; }
+                             else { lex_error(); }
+                             break;
+                }
+            } break;
+            case 1: if (isdigit(c) || isalpha(c)) {
+                state = 1;
+            } else {
+                // retract forward pointer.
+                forward--;
+                int n = forward - lexeme_beginning;
 
-        if (c == ';') {
-            return SEMICOLON;
-        } else if (c == '(') {
-            return OPEN_BRACKET;
-        } else if (c == ')') {
-            return CLOSE_BRACKET;
-        } else if (c == '=') {
-            return EQUALS;
-        } else if (isalpha(c)) {
-            str[char_i] = c;
-            char_i++;
-        } else if (isdigit(c)) {
-            num = (num_i * 10) + atoi(&c);
-            num_i++;
-        } else if (c == ' ' || c == '\t' || c == '\n') {
-            if (char_i > 0) {
-                // string "collection" is complete.
-                str[char_i] = '\0';
+                strncpy(token_value_str, buffer+lexeme_beginning, n);
+                token_value_str[n] = '\0';
 
-                symtable_record_ptr rec = symtable_get(str);
+                symtable_record_ptr rec = symtable_get(token_value_str);
                 if (rec) {
-                    strcpy(token_value_str, rec->lexeme);
                     return rec->token;
                 } else {
-                    strcpy(token_value_str, str);
                     return ID;
                 }
-            } else if (num_i > 0) {
-                token_value = num;
+            } break;
+            case 2: if (isdigit(c)) {
+                state = 2;
+            } else {
+                // retract forward pointer.
+                forward--;
+                int n = forward - lexeme_beginning;
+
+                strncpy(token_value_str, buffer+lexeme_beginning, n);
+                token_value_str[n+1] = '\0';
+
+                token_value = atoi(token_value_str);
                 return NUM;
-            }
-        } else if (feof(stdin)) {
-            return END;
-        } else {
-            error();
+            } break;
+            default: lex_error();
         }
     }
 }
@@ -71,15 +123,12 @@ void emit(char *s) {
 void match(token expected) {
 
     if (lookahead != expected) {
-        error();
-    } else {
+        syntax_error();
+    } else if (lookahead != EOF) {
         // fetch next token
         lookahead = lex();
     }
 }
-
-
-
 
 
 void literal() {
@@ -136,6 +185,7 @@ void stmt(int depth) {
         stmt_list(depth+1);
         match(CLOSE_BRACKET); emit(after_label); emit(":");
     } else if (lookahead == DO_TIMES) {
+        
         // the register used is based on the depth,
         // so that structures can be nested without conflict.
         char reg_id[5];
@@ -210,17 +260,12 @@ void parse() {
     emit("b start \n");
 
     stmt_list(0);
+    match(EOF);
 
     emit("exit: li $v0, 10 \n");
     emit("syscall");
 }
 
-
-
-error() {
-    printf("Syntax error\n");
-    exit(1);
-}
 
 int main() {
     // put keywords into symbol table.

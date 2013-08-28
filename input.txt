@@ -1,29 +1,29 @@
 func do (
-    print 5 ;
-    print 10 ;
-    print 15 ;
+    print 5;
+    print 10;
+    print 15;
 
-    x = 2 ;
+    x = 2;
 
     if false (
-       print x ;
+       print x;
     ) else (
-      print 7 ;
-    ) ;
+      print 7;
+    );
 
-    numtimes = 15 ;
+    numtimes = 15;
 
     dotimes numtimes (
-       print x ;
+       print x;
 
        dotimes 2 (
-            print 5 ;
-       ) ;
-    ) ;
-) ;
+            print 5;
+       );
+    );
+);
 
 func start (
-   print 0 ;
+   print 0;
 
-   call do ;
-) ;
+   call do;
+);

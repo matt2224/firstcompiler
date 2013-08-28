@@ -1,22 +1,12 @@
 stmt_list -> stmt ; stmt_list
            | epsilon
-stmt -> print { emit('li $v0,1 \n li $t0,') } literal { emit('\n  move $a0, $t0 \n syscall')}
-      | if { emit ('li $t0,')}
-       literal { emit('\n beq $t0,0,newlabel-0')}
-       ( stmt_list ) { emit('\n b newlabel-1 \n')}
-       else { emit(newlabel-0) emit (':') }
-       ( stmt_list ) { emit(newlabel-1) emit (':') }
-      | dotimes      { emit('li $t1,0 \n')}
-                      { emit(newlabel-0) emit(':') emit('bge $t1,')}
-        num { emit(',') emit(newlabel-1) emit('\n')}
-        ( stmt_list ) { emit('addi $t1,$t1,1 \n')}
-                      { emit('b ') emit(newlabel-0) emit('\n')}
-                      { emit(newlabel-1) emit(':') }
+stmt -> print
+      | if literal ( stmt_list ) else ( stmt_list )
+      | dotimes num ( stmt_list )
       | id = num
-      | func id { emit(id.value) emit(':')}
-        ( stmt_list ) { emit('b '); emit(endlabel); emit('\n')}
-      | call id { emit('b ') emit(id.value) emit('\n')}
-literal -> num { emit(num.val) }
-        | true { emit('1')}
-        | false { emit ('0')}
-        | id { emit(id.value) }
+      | func id ( stmt_list )
+      | call id
+literal -> num
+        | true
+        | false
+        | id
