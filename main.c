@@ -106,7 +106,7 @@ token lex() {
                 int n = forward - lexeme_beginning;
 
                 strncpy(token_value_str, buffer+lexeme_beginning, n);
-                token_value_str[n+1] = '\0';
+                token_value_str[n] = '\0';
 
                 token_value = atoi(token_value_str);
                 return NUM;
